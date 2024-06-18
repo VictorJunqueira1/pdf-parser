@@ -46,7 +46,14 @@ def filter_info(text):
 
     return "\n".join([f"{k}: {v}" for k, v in filtered_info.items()]), filtered_info.get("Veículo", "documento_resultante")
 
-def save_to_word(text, word_path):
+def clean_filename(filename):
+    # Substitui caracteres inválidos por _
+    invalid_chars = r'[<>:"/\|?*]'
+    cleaned_filename = re.sub(invalid_chars, '_', filename)
+    return cleaned_filename.strip()
+
+def save_to_word(text, filename):
+    cleaned_filename = clean_filename(filename)
     doc = Document()
     doc.add_heading('Informações Extraídas do PDF', 0)
     
@@ -56,8 +63,10 @@ def save_to_word(text, word_path):
             key, value = parts
             doc.add_heading(key, level=1)
             doc.add_paragraph(value)
-        
-    doc.save(word_path)
+    
+    save_path = filedialog.asksaveasfilename(defaultextension=".docx", filetypes=[("Documentos do Word", "*.docx")])
+    if save_path:
+        doc.save(save_path)
 
 def process_pdf():
     try:
@@ -74,7 +83,7 @@ def process_pdf():
         text_display.insert(tk.END, filtered_text)
         
         save_button.config(state=tk.NORMAL)
-        save_button.vehicle_name = vehicle_name
+        save_button.vehicle_name = vehicle_name  # Armazena o nome do veículo para uso posterior
     except Exception as e:
         progress.stop()
         messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
@@ -117,7 +126,7 @@ def main():
     select_button = tk.Button(frame, text="Selecionar PDF", command=process_pdf)
     select_button.grid(row=0, column=0, padx=10)
 
-    save_button = tk.Button(frame, text="Salvar como Word", command=lambda: save_to_word(text_display.get(1.0, tk.END), f"{save_button.vehicle_name}.docx"), state=tk.DISABLED)
+    save_button = tk.Button(frame, text="Salvar como Word", command=lambda: save_to_word(text_display.get(1.0, tk.END), save_button.vehicle_name), state=tk.DISABLED)
     save_button.grid(row=0, column=1, padx=10)
 
     progress = ttk.Progressbar(root, orient=tk.HORIZONTAL, length=400, mode='indeterminate')
