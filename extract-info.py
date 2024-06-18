@@ -1,8 +1,8 @@
-import fitz 
+import fitz  # PyMuPDF
 from docx import Document
 import os
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox, Text
 
 def extract_info_from_pdf(pdf_path):
     if not os.path.isfile(pdf_path):
@@ -20,20 +20,31 @@ def extract_info_from_pdf(pdf_path):
 
 def filter_info(text):
     # Palavras-chave para procurar no texto
-    keywords = ["Veículo", "Placa", "Ano", "Cor", "Lote", "Nº motor", "Câmbio", "Chassi", "Potência e cc", "Etiqueta"]
-    filtered_info = []
+    keywords = {
+        "Veículo": "",
+        "Placa": "",
+        "Ano": "",
+        "Cor": "",
+        "Lote": "",  # Presente no exemplo fornecido
+        "Nº motor": "",
+        "Câmbio": "",
+        "Chassi": "",
+        "Potência e cc": "",
+        "Etiqueta": ""  # Presente no exemplo fornecido
+    }
 
     # Dividir o texto em linhas
     lines = text.splitlines()
 
     # Procurar pelas palavras-chave nas linhas
     for line in lines:
-        for keyword in keywords:
+        for keyword in keywords.keys():
             if keyword.lower() in line.lower():  # Comparar em minúsculas para ignorar maiúsculas/minúsculas
-                filtered_info.append(line.strip())
+                keywords[keyword] = line.strip()
                 break  # Parar de procurar por esta palavra-chave após encontrar
 
-    return "\n".join(filtered_info)
+    filtered_info = "\n".join([f"{k}: {v}" for k, v in keywords.items() if v])
+    return filtered_info
 
 def save_to_word(text, word_path):
     doc = Document()
@@ -41,39 +52,53 @@ def save_to_word(text, word_path):
     doc.add_paragraph(text)
     doc.save(word_path)
 
-def main(pdf_path, word_path):
+def process_pdf():
     try:
-        extracted_text = extract_info_from_pdf(pdf_path)
-        filtered_text = filter_info(extracted_text)
-        save_to_word(filtered_text, word_path)
-        print(f"Informações extraídas e salvas em {word_path}")
-    except FileNotFoundError as e:
-        print(e)
-    except Exception as e:
-        print(f"Ocorreu um erro: {e}")
-
-def select_pdf_file():
-    root = tk.Tk()
-    root.withdraw()  # Esconde a janela principal
-    file_path = filedialog.askopenfilename(filetypes=[("Arquivos PDF", "*.pdf")])
-    return file_path
-
-def select_word_file():
-    root = tk.Tk()
-    root.withdraw()  # Esconde a janela principal
-    file_path = filedialog.asksaveasfilename(defaultextension=".docx", filetypes=[("Arquivos Word", "*.docx")])
-    return file_path
-
-if __name__ == "__main__":
-    try:
-        pdf_path = select_pdf_file()
+        pdf_path = filedialog.askopenfilename(filetypes=[("Arquivos PDF", "*.pdf")])
         if not pdf_path:
             raise ValueError("Nenhum arquivo PDF selecionado.")
+
+        extracted_text = extract_info_from_pdf(pdf_path)
+        filtered_text = filter_info(extracted_text)
         
-        word_path = select_word_file()
+        text_display.delete(1.0, tk.END)
+        text_display.insert(tk.END, filtered_text)
+        
+        save_button.config(state=tk.NORMAL)
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+
+def save_result():
+    try:
+        word_path = filedialog.asksaveasfilename(defaultextension=".docx", filetypes=[("Arquivos Word", "*.docx")])
         if not word_path:
             raise ValueError("Nenhum local de destino selecionado para o arquivo Word.")
-
-        main(pdf_path, word_path)
+        
+        filtered_text = text_display.get(1.0, tk.END)
+        save_to_word(filtered_text, word_path)
+        messagebox.showinfo("Sucesso", f"Informações salvas em {word_path}")
     except Exception as e:
-        print(f"Ocorreu um erro: {e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+
+def main():
+    global text_display, save_button
+
+    root = tk.Tk()
+    root.title("Extrator de Informações de PDF")
+
+    frame = tk.Frame(root)
+    frame.pack(pady=10)
+
+    select_button = tk.Button(frame, text="Selecionar PDF", command=process_pdf)
+    select_button.grid(row=0, column=0, padx=10)
+
+    save_button = tk.Button(frame, text="Salvar como Word", command=save_result, state=tk.DISABLED)
+    save_button.grid(row=0, column=1, padx=10)
+    
+    text_display = Text(root, wrap='word', width=80, height=20)
+    text_display.pack(padx=10, pady=10)
+    
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
