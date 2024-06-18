@@ -2,7 +2,7 @@ import fitz  # PyMuPDF
 from docx import Document
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox, Text
+from tkinter import filedialog, messagebox, Text, ttk
 import re
 
 def extract_info_from_pdf(pdf_path):
@@ -44,7 +44,7 @@ def filter_info(text):
         else:
             filtered_info[key] = "Informação não encontrada"
 
-    return "\n".join([f"{k}: {v}" for k, v in filtered_info.items()])
+    return "\n".join([f"{k}: {v}" for k, v in filtered_info.items()]), filtered_info.get("Veículo", "documento_resultante")
 
 def save_to_word(text, word_path):
     doc = Document()
@@ -61,40 +61,55 @@ def save_to_word(text, word_path):
 
 def process_pdf():
     try:
-        global pdf_path
         pdf_path = filedialog.askopenfilename(filetypes=[("Arquivos PDF", "*.pdf")])
         if not pdf_path:
             raise ValueError("Nenhum arquivo PDF selecionado.")
 
+        progress.start()
         extracted_text = extract_info_from_pdf(pdf_path)
-        filtered_text = filter_info(extracted_text)
+        filtered_text, vehicle_name = filter_info(extracted_text)
+        progress.stop()
         
         text_display.delete(1.0, tk.END)
         text_display.insert(tk.END, filtered_text)
         
         save_button.config(state=tk.NORMAL)
+        save_button.vehicle_name = vehicle_name
     except Exception as e:
+        progress.stop()
         messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
 
-def save_result():
-    try:
-        if not pdf_path:
-            raise ValueError("Nenhum arquivo PDF selecionado.")
+def show_help():
+    messagebox.showinfo("Ajuda", "1. Clique em 'Selecionar PDF' para escolher o arquivo PDF.\n"
+                                  "\n2. O texto extraído será exibido na área de texto.\n"
+                                  "\n3. Na área de texto, você pode inserir e conferir as informações, formatando como quiser.\n"
+                                  "\n4. Clique em 'Salvar como Word' para salvar o resultado em um arquivo Word.\n"
+                                  "\n5. Ao salvar, tome cuidado com barras invertidas e outros caracteres não aceitos, salve corretamente o nome do seu arquivo.")
 
-        word_path = os.path.splitext(pdf_path)[0] + ".docx"
-        
-        filtered_text = text_display.get(1.0, tk.END)
-        save_to_word(filtered_text.strip(), word_path)
-        messagebox.showinfo("Sucesso", f"Informações salvas em {word_path}")
-    except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+def show_feedback():
+    messagebox.showinfo("Feedback", "O programa está na fase teste, logo, pode conter erros.\n"
+                                    "\nCaso queira dar um feedback para continuarmos trabalhando juntos, envie um e-mail para: \n"
+                                    "\nvictorjunqueira.prog@gmail.com")
 
 def main():
-    global text_display, save_button, pdf_path
-    pdf_path = ""
+    global text_display, save_button, progress
 
     root = tk.Tk()
     root.title("Extrator de Informações de PDF")
+
+    menu_bar = tk.Menu(root)
+
+    # Menu Ajuda
+    help_menu = tk.Menu(menu_bar, tearoff=0)
+    help_menu.add_command(label="Ajuda", command=show_help)
+    menu_bar.add_cascade(label="Ajuda", menu=help_menu)
+
+    # Menu Feedback
+    feedback_menu = tk.Menu(menu_bar, tearoff=0)
+    feedback_menu.add_command(label="Feedback", command=show_feedback)
+    menu_bar.add_cascade(label="Feedback", menu=feedback_menu)
+
+    root.config(menu=menu_bar)
 
     frame = tk.Frame(root)
     frame.pack(pady=10)
@@ -102,9 +117,12 @@ def main():
     select_button = tk.Button(frame, text="Selecionar PDF", command=process_pdf)
     select_button.grid(row=0, column=0, padx=10)
 
-    save_button = tk.Button(frame, text="Salvar como Word", command=save_result, state=tk.DISABLED)
+    save_button = tk.Button(frame, text="Salvar como Word", command=lambda: save_to_word(text_display.get(1.0, tk.END), f"{save_button.vehicle_name}.docx"), state=tk.DISABLED)
     save_button.grid(row=0, column=1, padx=10)
-    
+
+    progress = ttk.Progressbar(root, orient=tk.HORIZONTAL, length=400, mode='indeterminate')
+    progress.pack(padx=10, pady=10)
+
     text_display = Text(root, wrap='word', width=80, height=20)
     text_display.pack(padx=10, pady=10)
     
