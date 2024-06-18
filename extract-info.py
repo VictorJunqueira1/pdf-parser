@@ -12,7 +12,6 @@ def extract_info_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     extracted_text = ""
     
-    # Extrair texto de todas as páginas
     for page_num in range(len(doc)):
         page = doc.load_page(page_num)
         extracted_text += page.get_text()
@@ -20,18 +19,17 @@ def extract_info_from_pdf(pdf_path):
     return extracted_text
 
 def filter_info(text):
-    # Palavras-chave para procurar no texto e suas expressões regulares associadas
     patterns = {
         "Veículo": re.compile(r'Modelo\s+([\w\/\s\-]+)'),
         "Placa": re.compile(r'Placa\s+(\w+)'),
         "Ano": re.compile(r'Ano de Fabricação\s+(\d{4})'),
         "Cor": re.compile(r'Cor\s+([\w]+)'),
-        "Lote": re.compile(r'Lote\s+(\d+)'),  # Placeholder, não parece existir no exemplo dado
+        "Lote": re.compile(r'Lote\s+(\d+)'),
         "Nº motor": re.compile(r'Nº Motor\s+([\w\-]+)'),
-        "Câmbio": re.compile(r'Nº Câmbio\s+([\w\-]+)'),  # Placeholder, não parece existir no exemplo dado
+        "Câmbio": re.compile(r'Nº Câmbio\s+([\w\-]+)'),
         "Chassi": re.compile(r'Chassi\s+([\w]+)'),
         "Potência e cc": re.compile(r'Potência \(cv\)\s+(\d+)\s+Cilindradas \(cc\)\s+(\d+)'),
-        "Etiqueta": re.compile(r'Etiqueta\s+(\w+)')  # Placeholder, não parece existir no exemplo dado
+        "Etiqueta": re.compile(r'Etiqueta\s+(\w+)')
     }
 
     filtered_info = {}
@@ -63,6 +61,7 @@ def save_to_word(text, word_path):
 
 def process_pdf():
     try:
+        global pdf_path
         pdf_path = filedialog.askopenfilename(filetypes=[("Arquivos PDF", "*.pdf")])
         if not pdf_path:
             raise ValueError("Nenhum arquivo PDF selecionado.")
@@ -79,9 +78,10 @@ def process_pdf():
 
 def save_result():
     try:
-        word_path = filedialog.asksaveasfilename(defaultextension=".docx", filetypes=[("Arquivos Word", "*.docx")])
-        if not word_path:
-            raise ValueError("Nenhum local de destino selecionado para o arquivo Word.")
+        if not pdf_path:
+            raise ValueError("Nenhum arquivo PDF selecionado.")
+
+        word_path = os.path.splitext(pdf_path)[0] + ".docx"
         
         filtered_text = text_display.get(1.0, tk.END)
         save_to_word(filtered_text.strip(), word_path)
@@ -90,7 +90,8 @@ def save_result():
         messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
 
 def main():
-    global text_display, save_button
+    global text_display, save_button, pdf_path
+    pdf_path = ""
 
     root = tk.Tk()
     root.title("Extrator de Informações de PDF")
