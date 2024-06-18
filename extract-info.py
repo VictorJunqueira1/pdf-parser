@@ -3,6 +3,7 @@ from docx import Document
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, Text
+import re
 
 def extract_info_from_pdf(pdf_path):
     if not os.path.isfile(pdf_path):
@@ -19,37 +20,45 @@ def extract_info_from_pdf(pdf_path):
     return extracted_text
 
 def filter_info(text):
-    # Palavras-chave para procurar no texto
-    keywords = {
-        "Veículo": "",
-        "Placa": "",
-        "Ano": "",
-        "Cor": "",
-        "Lote": "",  # Presente no exemplo fornecido
-        "Nº motor": "",
-        "Câmbio": "",
-        "Chassi": "",
-        "Potência e cc": "",
-        "Etiqueta": ""  # Presente no exemplo fornecido
+    # Palavras-chave para procurar no texto e suas expressões regulares associadas
+    patterns = {
+        "Veículo": re.compile(r'Modelo\s+([\w\/\s\-]+)'),
+        "Placa": re.compile(r'Placa\s+(\w+)'),
+        "Ano": re.compile(r'Ano de Fabricação\s+(\d{4})'),
+        "Cor": re.compile(r'Cor\s+([\w]+)'),
+        "Lote": re.compile(r'Lote\s+(\d+)'),  # Placeholder, não parece existir no exemplo dado
+        "Nº motor": re.compile(r'Nº Motor\s+([\w\-]+)'),
+        "Câmbio": re.compile(r'Nº Câmbio\s+([\w\-]+)'),  # Placeholder, não parece existir no exemplo dado
+        "Chassi": re.compile(r'Chassi\s+([\w]+)'),
+        "Potência e cc": re.compile(r'Potência \(cv\)\s+(\d+)\s+Cilindradas \(cc\)\s+(\d+)'),
+        "Etiqueta": re.compile(r'Etiqueta\s+(\w+)')  # Placeholder, não parece existir no exemplo dado
     }
 
-    # Dividir o texto em linhas
-    lines = text.splitlines()
+    filtered_info = {}
+    
+    for key, pattern in patterns.items():
+        match = pattern.search(text)
+        if match:
+            if key == "Potência e cc":
+                filtered_info[key] = f"{match.group(1)} cv, {match.group(2)} cc"
+            else:
+                filtered_info[key] = match.group(1)
+        else:
+            filtered_info[key] = "Informação não encontrada"
 
-    # Procurar pelas palavras-chave nas linhas
-    for line in lines:
-        for keyword in keywords.keys():
-            if keyword.lower() in line.lower():  # Comparar em minúsculas para ignorar maiúsculas/minúsculas
-                keywords[keyword] = line.strip()
-                break  # Parar de procurar por esta palavra-chave após encontrar
-
-    filtered_info = "\n".join([f"{k}: {v}" for k, v in keywords.items() if v])
-    return filtered_info
+    return "\n".join([f"{k}: {v}" for k, v in filtered_info.items()])
 
 def save_to_word(text, word_path):
     doc = Document()
     doc.add_heading('Informações Extraídas do PDF', 0)
-    doc.add_paragraph(text)
+    
+    for line in text.split('\n'):
+        parts = line.split(": ")
+        if len(parts) == 2:
+            key, value = parts
+            doc.add_heading(key, level=1)
+            doc.add_paragraph(value)
+        
     doc.save(word_path)
 
 def process_pdf():
@@ -75,7 +84,7 @@ def save_result():
             raise ValueError("Nenhum local de destino selecionado para o arquivo Word.")
         
         filtered_text = text_display.get(1.0, tk.END)
-        save_to_word(filtered_text, word_path)
+        save_to_word(filtered_text.strip(), word_path)
         messagebox.showinfo("Sucesso", f"Informações salvas em {word_path}")
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
