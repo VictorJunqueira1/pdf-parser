@@ -4,6 +4,32 @@ import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, Text, ttk
 import re
+import datetime
+
+def save_start_date(filename):
+    start_date = datetime.datetime.now()
+    with open(filename, 'w') as file:
+        file.write(start_date.strftime('%Y-%m-%d %H:%M:%S'))
+
+def load_start_date(filename):
+    with open(filename, 'r') as file:
+        start_date_str = file.read()
+        return datetime.datetime.strptime(start_date_str, '%Y-%m-%d %H:%M:%S')
+
+def is_trial_period_over(start_date, trial_days=30):
+    current_date = datetime.datetime.now()
+    return (current_date - start_date).days > trial_days
+
+def initialize_trial_period(filename='start_date.txt'):
+    if not os.path.exists(filename):
+        save_start_date(filename)
+    start_date = load_start_date(filename)
+    if is_trial_period_over(start_date):
+        messagebox.showerror("Período de Teste Expirado", "Seu período de teste de 30 dias expirou.")
+        return False
+    return True
+
+# Funções principais do programa
 
 def extract_info_from_pdf(pdf_path):
     if not os.path.isfile(pdf_path):
@@ -47,7 +73,6 @@ def filter_info(text):
     return "\n".join([f"{k}: {v}" for k, v in filtered_info.items()]), filtered_info.get("Veículo", "documento_resultante")
 
 def clean_filename(filename):
-    # Substitui caracteres inválidos por _
     invalid_chars = r'[<>:"/\|?*]'
     cleaned_filename = re.sub(invalid_chars, '_', filename)
     return cleaned_filename.strip()
@@ -102,6 +127,10 @@ def show_feedback():
 
 def main():
     global text_display, save_button, progress
+
+    # Verifica o período de teste antes de iniciar a interface gráfica
+    if not initialize_trial_period():
+        return
 
     root = tk.Tk()
     root.title("Extrator de Informações de PDF")
