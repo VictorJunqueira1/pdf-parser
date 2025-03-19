@@ -1,4 +1,4 @@
-import fitz  # PyMuPDF
+import fitz # PyMuPDF
 from docx import Document
 import os
 import tkinter as tk
@@ -50,12 +50,9 @@ def filter_info(text):
         "Placa": re.compile(r'Placa\s+(\w+)'),
         "Ano": re.compile(r'Ano de Fabricação\s+(\d{4})'),
         "Cor": re.compile(r'Cor\s+([\w]+)'),
-        "Lote": re.compile(r'Lote\s+(\d+)'),
         "Nº motor": re.compile(r'Nº Motor\s+([\w\-]+)'),
-        "Câmbio": re.compile(r'Nº Câmbio\s+([\w\-]+)'),
         "Chassi": re.compile(r'Chassi\s+([\w]+)'),
         "Potência e cc": re.compile(r'Potência \(cv\)\s+(\d+)\s+Cilindradas \(cc\)\s+(\d+)'),
-        "Etiqueta": re.compile(r'Etiqueta\s+(\w+)')
     }
 
     filtered_info = {}
@@ -80,18 +77,19 @@ def clean_filename(filename):
 def save_to_word(text, filename):
     cleaned_filename = clean_filename(filename)
     doc = Document()
-    doc.add_heading('Informações Extraídas do PDF', 0)
+    doc.add_heading('Informações Extraídas do PDF', level=1)
     
     for line in text.split('\n'):
         parts = line.split(": ")
         if len(parts) == 2:
             key, value = parts
-            doc.add_heading(key, level=1)
-            doc.add_paragraph(value)
+            doc.add_heading(key, level=3)
+            doc.add_paragraph(value, style='Normal')
     
     save_path = filedialog.asksaveasfilename(defaultextension=".docx", filetypes=[("Documentos do Word", "*.docx")])
     if save_path:
         doc.save(save_path)
+
 
 def process_pdf():
     try:
@@ -121,8 +119,7 @@ def show_help():
                                   "\n5. Ao salvar, tome cuidado com barras invertidas e outros caracteres não aceitos, salve corretamente o nome do seu arquivo.")
 
 def show_feedback():
-    messagebox.showinfo("Feedback", "O programa está na fase teste, logo, pode conter erros.\n"
-                                    "\nCaso queira dar um feedback para continuarmos trabalhando juntos, envie um e-mail para: \n"
+    messagebox.showinfo("Feedback", "\nCaso queira:\n \n 1. Dar um feedback para continuarmos trabalhando juntos \n 2. Contatar erros. \n Envie um e-mail para: \n"
                                     "\nvictorjunqueira.prog@gmail.com")
 
 def main():
